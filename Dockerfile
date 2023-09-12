@@ -1,4 +1,4 @@
-FROM node:12
+FROM node:18
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -8,7 +8,8 @@ WORKDIR /usr/src/app
 # where available (npm@5+)
 COPY package*.json ./
 
-RUN npm ci
+RUN npm install
+# ci
 
 # Bundle app source
 COPY . .
@@ -24,4 +25,4 @@ EXPOSE 8443
 CMD ["npm", "run", "develop"]
 # build and run with docker
 # Create image: `docker build -t wss-server .`
-#Run: `docker run -p 4111:4111 wss-server:latest`
+#Run: `docker run -p 8443:8443 wss-server:latest`
