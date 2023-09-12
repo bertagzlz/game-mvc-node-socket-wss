@@ -7,7 +7,7 @@ Websocket over TLS server example in node js
 Delete old certificate files `cert.pem`, `key.pem`
 
 - Step 1:
-Create certificates with: `openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes` key.pem is the private key
+Create certificates with: `openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes –subj /CN=*.render.com` key.pem is the private key
 
 # build and run 
 Step 1:
