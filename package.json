@@ -1,0 +1,40 @@
+{
+  "name": "Dashboard",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "engines": {
+    "node": "18.x"
+  },
+  "scripts": {
+    "develop": "node index.js",
+    "build": "tsc -p . -w",
+    "start": "nodemon index.js",
+    "dev": "nodemon index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "bootstrap": "^5.3.0-alpha3",
+    "cookie-session": "^2.0.0",
+    "dotenv": "^10.0.0",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-session": "^1.17.2",
+    "express-ws": "^5.0.2",
+    "nodemon": "^3.0.1",
+    "passport": "^0.4.1",
+    "passport-local": "^1.0.0",
+    "websocket": "^1.0.31",
+    "https": "^1.0.0",
+    "ws": "^8.14.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.15",
+    "@types/node": "^18.11.18",
+    "@types/ws": "^8.5.4",
+    "typescript": "^4.9.4"
+  }
+}

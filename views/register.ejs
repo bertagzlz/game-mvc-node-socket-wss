@@ -1,0 +1,141 @@
+ 
+<%- include('layout-inicio.ejs'); %>
+<div class="container">
+<div class="row justify-content-center">
+                    <div class="col-md-8">
+                        <h2>P3. NODE.JS MVC</h2>
+                        <div class="card">
+                            <div class="card-header">Registro con validación bootstrap/jquery</div>
+                            <div class="card-body">
+
+                                <form class="form-horizontal"
+                                novalidate="" id="bootstrapForm"
+                                method="post" action="/register">
+
+                                    <div class="form-group">
+                                        <label for="name" class="cols-sm-2 control-label">Su nombre</label>
+                                        <div class="cols-sm-10">
+                                            <div class="input-group">
+                                                <span class="input-group-addon"><i class="fa fa-user fa" aria-hidden="true"></i></span>
+                                                <input type="text" class="form-control" name="name" id="name"
+                                                placeholder="Enter your Name" required/>
+                                                 <div class="valid-feedback">Nombre válido</div>
+                                                 <div class="invalid-feedback">Introduzca nombre válido. Campo requerido</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="name" class="cols-sm-2 control-label">Su Avatar</label>
+                                        <div class="cols-sm-10">
+                                        <!-- AVATAR -->
+
+
+                                        <select class="form-control" required name="imagen">
+                                          <option selected="" disabled="" value="" >Elegir...</option>
+                                          <option value="./images/avatar1.jpg">avatar1</option>
+                                          <option value="./images/avatar2.jpg">avatar2</option>
+                                          <option value="./images/avatar3.jpg">avatar3</option>
+                                          <option value="./images/avatar4.jpg">avatar4</option>
+                                          <option value="./images/avatar5.jpg">avatar5</option>
+                                          <option value="./images/avatar6.jpg">avatar6</option>
+                                          <option value="./images/avatar7.jpg">avatar7</option>
+                                          <option value="./images/avatar8.jpg">avatar8</option>
+                                          <option value="./images/avatar9.jpg">avatar9</option>
+                                          <option value="./images/avatar10.jpg">avatar10</option>
+                                          <option value="./images/avatar11.jpg">avatar11</option>
+                                          <option value="./images/avatar12.jpg">avatar12</option>
+                                          <option value="./images/avatar13.jpg">avatar13</option>
+                                          <option value="./images/avatar14.jpg">avatar14</option>
+                                          <option value="./images/avatar15.jpg">avatar15</option>
+                                          <option value="./images/avatar16.jpg">avatar16</option>
+                                        </select>
+                                        <div class="invalid-feedback">Seleccione un avatar válido.</div>
+                                        </div>
+
+                                     </div>
+
+                                    <div class="form-group">
+                                        <label for="email" class="cols-sm-2 control-label">Su correo
+                                        <abbr class="text-danger" title="Requerido">*</abbr>
+                                        </label>
+                                        <div class="cols-sm-10">
+                                            <div class="input-group">
+                                                <span class="input-group-addon"><i class="fa fa-envelope fa" aria-hidden="true"></i></span>
+                                                <input type="text" class="form-control" name="email" id="email"
+                                                placeholder="Enter your Email" required/>
+                                                <div class="valid-feedback">Email # bien formado</div>
+                                                <div class="invalid-feedback">Introduzca formato de correo # como xxx@xxx.com. Campo obligatorio.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="password" class="cols-sm-2 control-label">Password
+                                        <abbr class="text-danger" title="Requerido">*</abbr>
+                                        </label>
+                                        <div class="cols-sm-10">
+                                            <div class="input-group">
+                                                <span class="input-group-addon"><i class="fa fa-lock fa-lg" aria-hidden="true"></i></span>
+                                                <input type="password" class="form-control" name="password" id="password"
+                                                placeholder="Enter your Password" required/>
+                                                <div class="valid-feedback">Password # parece válido</div>
+                                                <div class="invalid-feedback">Introduzca un password # como 1234. Campo obligatorio.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="confirm" class="cols-sm-2 control-label">Confirme Password
+                                        <abbr class="text-danger" title="Requerido">*</abbr>
+                                        </label>
+                                        <div class="cols-sm-10">
+                                            <div class="input-group">
+                                                <span class="input-group-addon"><i class="fa fa-lock fa-lg" aria-hidden="true"></i></span>
+                                                <input type="password" class="form-control" name="confirm" id="confirm"
+                                                placeholder="Confirm your Password" required/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group ">
+                                        <button type="submit" class="btn btn-primary btn-block login-button">Registrar</button>
+                                    </div>
+                                    <div class="login-register">
+                                        <a href="/login">Login</a>
+                                    </div>
+                                </form>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+</div>
+<script>
+// adapted from https://www.codeply.com/go/mhkMGnGgZo/bootstrap-4-validation-example
+
+$("#bootstrapForm").submit(function(event) {
+
+    // make selected form variable
+    var vForm = $(this);
+
+  /*
+  If not valid prevent form submit
+  https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/checkValidity
+  */
+    if (vForm[0].checkValidity() === false) {
+      event.preventDefault()
+      event.stopPropagation()
+    } else {
+
+      // Replace alert with ajax submit here...
+      //alert("your form is valid and ready to send");
+
+    }
+
+    // Add bootstrap 4 was-validated classes to trigger validation messages
+    vForm.addClass('was-validated');
+
+
+});
+
+</script>
+</body>
+</html>
