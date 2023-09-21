@@ -8,28 +8,18 @@
     </div>
 
     <div id="usuarios" class="container p-3 my-3 border ">
-        <!--<div id="userConnected" class="container p-1 my-3 bg-dark text-white"></div>-->
         <div id="usuarios-row" class="row" >
             <h4>Usuarios conectados</h4>
-            <!--<% //usersConnected.forEach(function(user){ %>-->
-                <div id="conectados" class="col" draggable="true" ondragstart="return dragStart(event)">
-                    <!--<div class="display: contents; position: absolute;"-->
+                <div id="conectados" class="col" ondragstart="return dragStart(event)">
                         <img id="<%= user.id %>" src="<%= user.imagen %>" name="<%= user.username %>" alt="avatar" width="80px"
                              draggable="true">
-                        <!--<p style="margin-bottom: 0.2rem"><%= user.name %></p>-->
-                        <!--</div>-->
                 </div>
-            <!--<% //}); %>-->
         </div>
     </div>
     <div class="container text-center">
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4">
-
-
-        <!--<div id="salas" class="container p-3 my-3 border ">-->
-            <!--<div id="salas-row" class="row" >-->
-            <% salas.forEach(function(sala){ %>
-          <div class="col" >
+          <% salas.forEach(function(sala){ %>
+            <div class="col" >
                     <p style="margin-bottom: 0.2rem"><%= sala.name %></p>
                     <div class="progress barras simulacion">
                         <!-- las barras van del 0-50%. width (porcentaje)=casillas-click/16/2-->
@@ -50,10 +40,9 @@
 
                     <div class="divBoard" id = "divBoard<%= sala.id %>"></div>
            </div>
-            <% }); %>
+          <% }); %>
         </div>
     </div>
-
 
     <!-- TABLA INFERIOR PARA INDICAR LAS SUCESIVAS ASIGNACIONES DE usuario a sala de juego-->
     <div id="items" hidden="hidden" class="container p-3 my-3 bg-dark text-white">
@@ -64,149 +53,20 @@
 </div>
 
 <script>
-    // get the server URL from the window.location:
     // change 'wss' to 'ws' for running without SSL):
     let serverURL = 'wss://' + window.location.hostname+':8443';
+    //let ws = new WebSocket("ws://localhost:9090"); // FUNCIONA BIEN EN LOCAL
+    //let ws = new WebSocket("wss://game-mvc-node-socket.onrender.com");
     // window.location.host contiene localhost:4111
+
     // the webSocket connection:
     let ws;
-    //let idSala = null;
+
     let playerColor = null; // necesario
-    //let users=[];
+
     users=JSON.parse('<%- JSON.stringify(users) %>');
     let idJugador=JSON.parse('<%- JSON.stringify(user.id) %>');
 
-    //let ws = new WebSocket("ws://localhost:9090"); // FUNCIONA BIEN EN LOCAL
-    //let ws = new WebSocket("wss://game-mvc-node-socket.onrender.com");
-
-    // Venimos aquí con login. Le decimos al server que estamos.
-    /*ws.addEventListener("open", (ev) => {
-        console.log("Jugador id Set successfully " + idJugador);
-        const payLoad = { "method": "connect", "idJugador": idJugador }
-        ws.send(JSON.stringify(payLoad));
-    });*/
-    // SI EXISTE EN EL LS Y HAY MENOS DE DOS se muestra en su sala,
-    // SI NO EN CONECTADO
-    //mostrarItemDeLS(idJugador, response.jugadoresPorSala);
-    /*ws.onmessage = message => {
-        //message.data
-        const response = JSON.parse(message.data);
-        //disjoin
-        if (response.method === "disjoin") {
-            let partida=response.partida;
-            quitarAvatar(response.clientAQuitar,partida.id);
-            // borra todos sus botones
-            borrarTablero(partida);
-            //document.getElementById("divboard"+partida.id).remove();
-            // vuelve a dibujarlos
-            //dibujaTablero(partida);
-            actualizaBarra(partida.id,0,0);
-            actualizaBarra(partida.id,1,0);
-            document.getElementById(idJugador).style.border="";
-
-            /!* si no está en usuarios locales y se acababa de registrar no puede seguir en LS
-            porque no se almacena en users.js (servidor)
-            Mal truco,: los nuevos registrados se identifican por su color empiez por #....
-            * *!/
-            let user=users.find(u=>u.id===Number(response.clientAQuitar));
-            if (user.color.substr(0,1)==='#')
-             deleteItem(response.clientAQuitar);
-        }
-
-        //join
-        // PONE SU COLOR Y DIBUJAR TABLERO
-        // CREA EVENTOS PLAY
-        if (response.method === "join"){
-            const partida = response.partida;
-            idJugador=response.idJugador;
-            //si pongo esto usa siempre el último usuario
-            // const clientId=response.clientId;
-            // ojo con las variables.....clientId es global
-
-            partida.jugadores.forEach (c => {
-                // A ESTE JUGADOR LE ASIGNA COLOR
-                if (c.id === idJugador) playerColor = c.color;
-            });
-            // borra todos sus botones
-            borrarTablero(partida)
-            // vuelve a dibujarlos
-            dibujaTablero(partida)
-        }
-        //updateAvatar
-        if (response.method === "updateAvatar") {
-            idJugador = response.idJugador;
-            //idContrario=response.idContrario
-            console.log("updateAvatar set successfully " + idJugador)
-            //
-            crearAvatardelContrarioEnSala(idJugador,response.idSala);
-        }
-        //updateAvatar
-        if (response.method === "updateAvatarEnConectados") {
-            idJugador = response.idJugador;
-            console.log("updateAvatar en conectados " + idJugador)
-            //
-            updateAvatarEnConectados(idJugador);
-        }
-        if (response.method === "getAvatarJugador") {
-            console.log("getAvatarJugador en sala correspondiente " + idJugador)
-            mostrarEnSala(response.idJugador,response.idSala);
-        }
-        // entra a jugar a la sala, sale de su barra de conectados don Drag&drop y el resto de usuarios
-        // debe saberlo para borrarlo también
-        if (response.method === "borraMiAvatarEnRestoConectados") {
-            idJugador = response.idJugador;
-            console.log("borra avatar del " + idJugador+ " en las otra ventanas conectadas")
-            if (document.getElementById(idJugador) !=null) {
-                let node = document.getElementById(idJugador);
-                // borrar esto: <img id="1" src="./images/avatar1.jpg" ...
-                document.getElementById("conectados").removeChild(node);
-            }
-        }
-        //update BOLAS
-        if (response.method === "update") {
-            //{1=> "red", 1} ojo no admite Map
-            const estados=response.estados;
-            if (!estados) return;
-            for(const key of Object.keys(estados)) {
-                const ballObject = document.getElementById("ball" + key);
-                ballObject.style.backgroundColor = estados[key];
-            }
-        }
-        //newPoint
-        if (response.method === "newPoint") {
-            // no quiero al idJugador, todas las barras llevan 0 y 1
-            let pb=document.getElementById(String(response.idSala)+'-'+response.index);
-            let pbs=document.getElementById(String(response.idSala)+'-s-'+response.index);
-            let length = pb.style.width.length;
-            let porcentaje = Number(pb.style.width.substr(0, length - 1));
-            pb.style.width = String(porcentaje + 100 / 16 ) + "%";
-
-
-            pb.style.backgroundColor=response.color;
-            pbs.style.backgroundColor=response.color;
-
-
-        }
-        //win
-        if (response.method === "win"){
-            const idJugador = response.idJugador;
-            document.getElementById(idJugador).style.border="6px dotted #00ff00";
-            let user=users.find(u=>u.id===Number(idJugador));
-            alert("Gana el jugador: ("+user.id+") "+user.name);
-        }
-    }*/
-    /*ws.onclose = function(event) {
-        if (event.wasClean) {
-            alert(`[close] Conexión cerrada limpiamente, código=${event.code} motivo=${event.reason}`);
-        } else {
-            // ej. El proceso del servidor se detuvo o la red está caída
-            // event.code es usualmente 1006 en este caso
-            alert('[close] La conexión se cayó');
-        }
-    };*/
-    /*ws.onerror = function(error) {
-        alert(`[error]`);
-    };*/
     function borrarTablero(partida) {
     const dB=document.getElementById("divBoard"+partida.id);
     // borra todos sus botones
@@ -246,16 +106,13 @@
         let pbs=document.getElementById(String(idSala)+'-s-'+index);
         pb.style.width = String(valor)+"%";
     }
-
+    // Venimos aquí con login. Le decimos al server que estamos.
     function setup() {
         // open the socket:
         ws = new WebSocket(serverURL);
         ws.addEventListener('open', openConnection);
         ws.addEventListener('close', closeConnection);
         ws.addEventListener('message', readIncomingMessage);
-    }
-    function openSocket(url) {
-
     }
     function openConnection() {
         console.log("Jugador id Set successfully " + idJugador);
@@ -272,12 +129,63 @@
         }
     }
     function readIncomingMessage(message) {
-        //message.data
         const response = JSON.parse(message.data);
-        //disjoin
+
+        //   H A   H E C H O   L O G I N --> U N   J U G A D O R   S E   C O N E C T A
+        // entra a conectados, las otras ventanas deben tener este avatar
+        if (response.method === "updateAvatarEnConectados") {
+            idJugador = response.idJugador;
+            console.log("updateAvatarEnConectados " + idJugador)
+            updateAvatarEnConectados(idJugador, response.draggable);
+        }
+        if (response.method === "getAvataresDeLosJugando") {
+            console.log("getAvataresDeLosJugando en sala correspondiente " + idJugador)
+            mostrarEnSala(response.idJugador,response.idSala);
+        }
+
+        //   U N   J U G A D O R   W A N T   T O   J O I N
+        // entra a jugar en partida,
+        if (response.method === "updateMiAvatarAlResto") {
+            idRecentJoined = response.idJugador;
+            console.log("updateMiAvatarAlResto set successfully " + idRecentJoined)
+            updateMiAvatarAlResto(idRecentJoined,response.idSala);
+        }
+        // entra a jugar en partida, sale de su barra de conectados con Drag&drop pero el resto de usuarios
+        // debe saberlo para borrarlo también
+        if (response.method === "borraMiAvatarEnRestoConectados") {
+            idJugador = response.idJugador;
+            console.log("borra avatar del " + idJugador+ " en las otra ventanas conectadas")
+            if (document.getElementById(idJugador) !=null) {
+                let node = document.getElementById(idJugador);
+                // borrar esto: <img id="1" src="./images/avatar1.jpg" ...
+                document.getElementById("conectados").removeChild(node);
+            }
+        }
+        // pone color y dibuja tablero, crea eventos click para jugar
+        if (response.method === "joined"){
+            const partida = response.partida;
+            idJugador=response.idJugador;
+            //si pongo esto usa siempre el último usuario
+            // const clientId=response.clientId;
+            // ojo con las variables.....clientId es global
+
+            partida.jugadores.forEach (c => {
+                // A ESTE JUGADOR LE ASIGNA COLOR
+                if (c.id === idJugador) playerColor = c.color;
+            });
+            // borra todos sus botones
+            borrarTablero(partida)
+            // vuelve a dibujarlos
+            dibujaTablero(partida)
+        }
+
+        // saca de la partida
         if (response.method === "disjoin") {
             let partida=response.partida;
-            quitarAvatar(response.clientAQuitar,partida.id);
+
+            // removeChild de la sala, nada más
+            quitarAvatarDeSala(response.clientAQuitar,partida.id);
+
             // borra todos sus botones
             borrarTablero(partida);
             //document.getElementById("divboard"+partida.id).remove();
@@ -295,58 +203,9 @@
             if (user.color.substr(0,1)==='#')
                 deleteItem(response.clientAQuitar);
         }
-        //join
-        // PONE SU COLOR Y DIBUJAR TABLERO
-        // CREA EVENTOS PLAY
-        if (response.method === "join"){
-            const partida = response.partida;
-            idJugador=response.idJugador;
-            //si pongo esto usa siempre el último usuario
-            // const clientId=response.clientId;
-            // ojo con las variables.....clientId es global
 
-            partida.jugadores.forEach (c => {
-                // A ESTE JUGADOR LE ASIGNA COLOR
-                if (c.id === idJugador) playerColor = c.color;
-            });
-            // borra todos sus botones
-            borrarTablero(partida)
-            // vuelve a dibujarlos
-            dibujaTablero(partida)
-        }
-        //updateAvatar
-        if (response.method === "updateAvatar") {
-            idJugador = response.idJugador;
-            //idContrario=response.idContrario
-            console.log("updateAvatar set successfully " + idJugador)
-            //
-            crearAvatardelContrarioEnSala(idJugador,response.idSala);
-        }
-        //updateAvatar
-        if (response.method === "updateAvatarEnConectados") {
-            idJugador = response.idJugador;
-            console.log("updateAvatar en conectados " + idJugador)
-            //
-            updateAvatarEnConectados(idJugador);
-        }
-        if (response.method === "getAvatarJugador") {
-            console.log("getAvatarJugador en sala correspondiente " + idJugador)
-            mostrarEnSala(response.idJugador,response.idSala);
-        }
-        // entra a jugar a la sala, sale de su barra de conectados don Drag&drop y el resto de usuarios
-        // debe saberlo para borrarlo también
-        if (response.method === "borraMiAvatarEnRestoConectados") {
-            idJugador = response.idJugador;
-            console.log("borra avatar del " + idJugador+ " en las otra ventanas conectadas")
-            if (document.getElementById(idJugador) !=null) {
-                let node = document.getElementById(idJugador);
-                // borrar esto: <img id="1" src="./images/avatar1.jpg" ...
-                document.getElementById("conectados").removeChild(node);
-            }
-        }
         //update BOLAS
-        if (response.method === "update") {
-            //{1=> "red", 1} ojo no admite Map
+        if (response.method === "update") { //{1=> "red", 1} ojo no admite Map
             const estados=response.estados;
             if (!estados) return;
             for(const key of Object.keys(estados)) {
@@ -354,6 +213,7 @@
                 ballObject.style.backgroundColor = estados[key];
             }
         }
+
         //newPoint
         if (response.method === "newPoint") {
             // no quiero al idJugador, todas las barras llevan 0 y 1
@@ -369,6 +229,7 @@
 
 
         }
+
         //win
         if (response.method === "win"){
             const idJugador = response.idJugador;

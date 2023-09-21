@@ -36,8 +36,9 @@ app.use("/", require("./controllers/entrada"));
 //   C A R G A   D E   D A T O S   L O C A L E S   D O S   A R R A Y S
 global.users=require("./data/data").users;
 global.salas=require("./data/data").salas;
-const Partida = require("./models/Partida.js");
+
 const Jugador = require("./models/Jugador.js");
+const MiArray = require("./models/MiArray.js");
 
 //   OBJETO DE CONEXIONES DE J U G A D O R E S
 global.clients = {};
@@ -46,26 +47,26 @@ global.clients = {};
 global.esteJugador={};
 
 //   P A R T I D A S
+const Partida = require("./models/Partida.js");
 global.partidas = new Map();
-global.conectados = []; //new Map();
-global.noConectados=new Map();
-
+// array to Map
 salas.forEach(sala=>{
-  let value = new Partida(sala.id,sala.name,sala.balls,sala.jugadores,sala.estado)
-  partidas.set(sala.id,value)
+    let value = new Partida(sala.id,sala.name,sala.balls,sala.jugadores,sala.estado)
+    partidas.set(sala.id,value)
 })
 
-// no https
-//const serverHttp = http.createServer(app);
-// https
+global.conectados = new MiArray([]); //[]; //new Map()
+/* se usa al hacer login y ver quién no ha entrado al sistema.
+Evitamos que un usuario entre dos veces.*/
+global.noConectados=new Map();
+
+//const serverHttp = http.createServer(app);   // no https
+
 const server = https.createServer({
   cert: fs.readFileSync('./cert.pem'),
   key: fs.readFileSync('./key.pem'),
-},app);
-
-
+},app);   // https
 const wss = new WebSocket.Server({ server });
-
 
 wss.on('connection', (ws) => {
   console.log("connection started");
@@ -76,20 +77,22 @@ wss.on('connection', (ws) => {
   //   O N   M E S S A G E   F R O M   J U G A D O R
   ws.on('message', (message) => {
     //console.log(`Received message => ${message}`);
-    //ws.send(`Hi there, I have received the message: '${message}'`);
-    console.log(`Received message => ${message}`);
-    //old const result = JSON.parse(message.utf8Data)
-    const result = JSON.parse(message.toString())
+    //ws.send(`Hi there, I have received...: '${message}'`);
+    console.log(`Received message => ${message}`)
+    const result = JSON.parse(message.toString()); //old JSON.parse(message.utf8Data)
 
-    //   U N   J U G A D O R   S E   C O N E C T A,   H A   H E C H O   L O G I N
+    //   H A   H E C H O   L O G I N --> U N   J U G A D O R   S E   C O N E C T A
     if (result.method === "connect") {
-      const idJugador = result.idJugador;
-      conectados.push(idJugador);
-      console.log("connect del "+idJugador);
+      const idNuevoConectado = result.idJugador;
+      console.log("connect del "+idNuevoConectado);
+      //   INCREMENTO CONECTADOS
+      conectados.getArray().push(idNuevoConectado);
 
-      //   R E C I B O   D E   T O D O S   L O   Q U E   H A Y
-      updateAvatarEnConectados(idJugador);
-      getAvataresJugando(idJugador);
+      //   LOS CONECTADOS ENVÍAN A MÍ, QUE SOY NUEVO, SUS AVATARES Y QUEDAN EN CONECTADOS
+      //   DE MÍ ENVIO MI AVATAR A TODOS LOS CONECTADOS Y QUEDAN EN CONECTADOS
+      updateAvatarEnConectados(idNuevoConectado);
+      //   DE LOS QUE ESTÁN JUGANDO R E C I B O   SUS AVATARES Y QUEDAN EN LAS SALAS
+      getAvataresDeLosJugando(idNuevoConectado);
     }
 
     //   U N   J U G A D O R   W A N T   T O   J O I N
@@ -102,12 +105,13 @@ wss.on('connection', (ws) => {
         console.log("sorry max players reached");
         return;
       }
-      // T O D A S   L A S   S A L A S   I G U A L E S   R O J O   Y   V E R D E
+      //   QUEDA EN   C O N E C T A D O S   Y   ENTRA ADEMÁS EN   P A R T I D A S
       partida.jugadores.push({
-        "id": String(users[idJugador].id),
+        "id": users[idJugador].id, //String(users[idJugador].id),
+        // TODAS LAS SALAS IGUAL COLOR ROJO Y VERDE?
         "color": users[idJugador].color
       })
-      // T O D O S   R E C I B E N   E L   N U E V O   A V A T A R   D E L   N U E V O JOINED
+      // T O D O S   R E C I B E N   E L   A V A T A R   D E L   N U E V O JOINED
       updateMiAvatarAlResto(idJugador, idSala);
       borraMiAvatarEnRestoConectados(idJugador);
       //   S I   A D E M Á S   H A Y   D O S   E N   S A L A   S T A R T   T H E   G A M E
@@ -115,7 +119,7 @@ wss.on('connection', (ws) => {
         // A   T O D O S   L O S   D E   L A   S A L A,   Y   A   É L
         // PONE SU COLOR Y DIBUJAR TABLERO
         const payLoad = {
-          "method": "join",
+          "method": "joined",
           "partida": partida,
           "idJugador": -1 // "0"
         }
@@ -141,23 +145,12 @@ wss.on('connection', (ws) => {
       // state es un objeto {1: "Red"}. state.1 ó state[1] vale "Red"
       state[idBall] = color; // state es un objeto {"Red", "Green"....} con keys {1, 2,...}
       // añade nuevo color
-      //partida.setEstado(idBall,color);
-      partida.estados = state;
+      partida.estados = state; //partida.setEstado(idBall,color);
       updateGameState();
       // A C T U A L I Z O   B A R R A S   D E   P R O G R E S O   A   T O D O S
       let index = 0;
-      /*for (const ix of Object.keys(partida.clients)) {
-          if (partida.clients[ix].clientId === clientId) index = ix;
-      }*/
-
       const isElement = (j) => j.id ===idJugador;
       index=partida.jugadores.findIndex(isElement);
-
-      /*partida.clients.forEach(c => {
-          clients[c.clientId].connection.send(JSON.stringify({
-              "method": "newPoint", "idSala": idSala,"index": index,
-          }))
-      })*/
 
       // a los dos jugadores pero a la misma barra, ojo
       partida.jugadores.forEach(j => {
@@ -166,27 +159,10 @@ wss.on('connection', (ws) => {
         }))
       })
 
-
       let points = 0;
-      /*for (const b of Object.keys(partidas.get(idSala].state)) {
-          if (partidas.get(idSala].state[b] === color) {
-              points++;
-          }
-      }*/
-
+      // recibo los puntos que tiene
       points=partida.getColoresPorJugador(color);
-
-      // A   T O D O S:   clientId   H A   G A N A D O
-      /*if (points > 7) {
-          console.log("Gana el jugador: " + clientId);
-          const payLoad = {
-              "method": "win",
-              "clientId": clientId,
-          }
-          partida.clients.forEach(c => {
-              clients[c.clientId].connection.send(JSON.stringify(payLoad))
-          })
-      }*/
+      // A   T O D O S LOS DE ESA PARTIDA:   idJugador   H A   G A N A D O
       if (points > 7) {
         console.log("Gana el jugador: " + idJugador);
         const payLoad = {
@@ -199,18 +175,6 @@ wss.on('connection', (ws) => {
       }
     }
 
-    if (result.method === "updateAvatarContrario") {
-
-      console.log("updateAvatar del contrario "+result.clientContrario);
-      const payLoad = {
-        "method": "updateAvatar",
-        "idJugador":result.clientContrario,
-        "clientContrario":result.clientId,
-        "idSala":result.idSala,
-      }
-      clients[result.clientId].connection.send(JSON.stringify(payLoad))
-    }
-
   });
   //   F I N   O N   M E S S A G E   F R O M   J U G A D O R
   //   T O D O S   L O S   E N V Í O S   V A N   C O N   E S T A   C O N E X I Ó N
@@ -218,87 +182,83 @@ wss.on('connection', (ws) => {
   clients[idJugador] = {
     "connection":  ws
   }
-
-  let jugadoresPorSala={}
-  for (const [key, value] of partidas) {
-    jugadoresPorSala[key]=value.jugadores.length;
-  }
-
-  const payLoadSalas = {
-    "method": "updateSalas",
-    "partidas": partidas
-  }
-
-  //ws.send('Hi there, I am a WebSocket server');
 });
 
-
-// irá a la sala de la ventana contraria
-function updateMiAvatarAlResto(idJugador,idSala) {
-  conectados.forEach(idContrario=> {
-    if (idJugador != idContrario) {
-      // el 1 es el idJugador, se lo tiene que decir al 0
-      const payLoad = {
-        "method": "updateAvatar",
-        "idJugador": idJugador,
-        "idSala": idSala,
-      }
-      // al contrario le pongo mi avatar en la sala
-      clients[idContrario].connection.send(JSON.stringify(payLoad))
-      console.log("updateAvatar mio en el contrario " + idContrario);
+//   MÉTODOS   C O N E C T
+// si tengo tres A B C y C acaba de conectarse:
+// para B envía a A su avatar y A le envía a B el suyo
+// para C envía a A su avatar y A le envía a C el suyo
+function updateAvatarEnConectados(idNuevoConectado) {
+  conectados.getArray().forEach(idResto=> {
+    if (idNuevoConectado != idResto) {
+      sendPayLoad("updateAvatarEnConectados",idResto,idNuevoConectado, false);
+      sendPayLoad("updateAvatarEnConectados",idNuevoConectado,idResto, false);
     }
   });
 }
-function getAvataresJugando(idReceptor){
-// A está en sala, B se loguea (se conecta)
-  for (const [key, value] of partidas) {
-    const partida = partidas.get(key);
-    partida.jugadores.forEach(e=> { // elemento del array
-      const payLoad = {
-        "method": "getAvatarJugador",
-        "idJugador": e.id,
-        "idSala": key,
-      }
-      clients[idReceptor].connection.send(JSON.stringify(payLoad))
-    });
-  }
-}
-function updateAvatarEnConectados(idJugador) {
-  conectados.forEach(idContrario=> {
-    if (idJugador != idContrario) {
-      sendPayLoad("updateAvatarEnConectados",idContrario,idJugador);
-      sendPayLoad("updateAvatarEnConectados",idJugador,idContrario);
+// si tengo dos A y B que están en salas (jugando) y C acaba de conectarse:
+// C debe recibir A en us sala
+// C debe recibir B en su sala
+function getAvataresDeLosJugando(idReceptor){
+    for (const [key, value] of partidas) {
+        const partida = partidas.get(key);
+        partida.jugadores.forEach(e=> { // elemento del array
+            const payLoad = {
+                "method": "getAvataresDeLosJugando",
+                "idJugador": e.id,
+                "idSala": key,
+            }
+            clients[idReceptor].connection.send(JSON.stringify(payLoad))
+        });
     }
-  });
-
 }
 // entra a jugar a la sala, sale de su barra de conectados don Drag&drop y el resto de usuarios
 // debe saberlo para borrarlo también
+
+//   MÉTODOS   J O I N
+// entra a join a la sala, las salas de los otros deben tener este avatar
+function updateMiAvatarAlResto(idJugador,idSala) {
+    conectados.getArray().forEach(idContrario=> {
+        if (idJugador != idContrario) {
+            // el 1 es el idJugador, se lo tiene que decir al 0
+            const payLoad = {
+                "method": "updateMiAvatarAlResto",
+                "idJugador": idJugador,
+                "idSala": idSala,
+            }
+            // al contrario le pongo mi avatar en la sala
+            clients[idContrario].connection.send(JSON.stringify(payLoad))
+            console.log("updateAvatar mio en el contrario " + idContrario);
+        }
+    });
+}
+// entra a join a la sala, sale de su barra de conectados con Drag&drop pero el resto de usuarios
+// debe saberlo para borrarlo también
 function borraMiAvatarEnRestoConectados(idJugador) {
-  conectados.forEach(idContrario=> {
+  conectados.getArray().forEach(idContrario=> {
     if (idJugador != idContrario) {
-      sendPayLoad("borraMiAvatarEnRestoConectados",idContrario,idJugador);
+      sendPayLoad("borraMiAvatarEnRestoConectados",idContrario,idJugador, false);
     }
   });
 }
-function sendPayLoad(method, who, what) {
-  const payLoad = { "method": method, "idJugador": what }
+
+//   MÉTODOS   G L O B A L E S   D E   A Y U D A
+function sendPayLoad(method, who, what,draggable) {
+  const payLoad = { "method": method, "idJugador": what, "draggable":draggable }
   clients[who].connection.send(JSON.stringify(payLoad))
   console.log(method + " "+who);
 }
 
-// A   T O D O S   L O S   U S U A R I O S   E N V I A M O S   E L   J U E G O   C O M P L E T O
-// CADA 0,5 SEG.
+//   T O D O S  R E C I B E N   E L   J U E G O   C O M P L E T O   CADA 0,5 SEG.
 function updateGameState(){
-  // { "idSala", fasdfsf }
-  for (const [key, value] of partidas) {
+  for (const [key, value] of partidas) { // cada partida
     const partida = partidas.get(key)
     if (partida.estados) {
       const payLoad = {
         "method": "update",
         "estados": partida.estados
       }
-      partida.jugadores.forEach(j => {
+      partida.jugadores.forEach(j => { // cada jugador de esa partida
         clients[j.id].connection.send(JSON.stringify(payLoad))
       })
     }

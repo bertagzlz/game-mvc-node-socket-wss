@@ -67,16 +67,14 @@ const registerUser = (req, res) => {
 //   L O G I N
 //   V I S T A
 const loginView = (req, res) => {
-noConectados.clear();
-    users.forEach(u=>{
-      if (conectados.find(c=>c===u.id) !=null) {
-      } else {
+  noConectados.clear(); // borra todos los elem del Map
+  users.forEach(u=>{
+    if (conectados.contiene(u.id)) {
+      //if (conectados.find(c=>c===u.id) !=null) {
+    } else {
       noConectados.set(u.id, u);
-      }
-    });
-  /*const ids = users.filter(obj =>
-      (item.id===obj.id) && (item.sala===obj.sala)
-  );*/
+    }
+  });
   res.render("login", {});
 };
 //   S U B M I T // redirect login OR juego
@@ -95,6 +93,7 @@ const loginUser = (req, res) => {
   else {
     var foundUser = users.find((u) => u.email === email);
     if (foundUser!=null) esteJugador=foundUser;
+    if (noConectados.has(foundUser.id)) noConectados.delete(foundUser.id);
     passport.authenticate("local", {
       successRedirect: "/juego",
       failureRedirect: "/login",
@@ -102,74 +101,92 @@ const loginUser = (req, res) => {
     })(req, res);
   }
 };
+
+
+
 const logoutUser=function(req, res, error_message) {
   try {
 
-    let oppositePlayer;
+    // PARA TODAS LAS PARTIDAS BUSCO EN QUÉ PARTIDA JUEGA
+    let partida=null;
+    let existeEnLaPartida=false;
+    let hayJugando=0;
     for (const  [key, value] of partidas) {
-      const partida = partidas.get(key); // g vale "1"....es el idSala
-      const existeEnLaPartida=partida.existeJugador(req.user.id);
-      const hayJugando=partida.getNumeroJugadores();
+      partida = partidas.get(key); // g vale "1"....es el idSala
+      existeEnLaPartida = partida.contieneJugador(req.user.id);
+      hayJugando = partida.getNumeroJugadores();
+      if (existeEnLaPartida) break;
+    }
+    console.log("Logout del user "+ req.user.id);
+    // SI JUEGA EN UNA PARTIDA
+    if (existeEnLaPartida) {
+      console.log(req.user.id+" sale de la sala "+partida.id);
+      conectados.getArray().forEach(idConectado => {
+        const payLoad = { "method": "disjoin", "partida": partida, "clientAQuitar": req.user.id }
+        // TODOS LOS CONECTADOS TIENEN UNA SALA CON ESE JUGADOR Y EL MISMO SE QUITA DE SU SALA
+        // removeChild de la sala, nada más
+        clients[idConectado].connection.send(JSON.stringify(payLoad))
+        console.log(req.user.id+" sale de la sala "+partida.id+" en el usuario "+idConectado);
+      });
+      conectados.quitarElemento(req.user.id);
+      partida.borrarJugador(req.user.id);
 
-      //  ESTABA JUGANDO CON UN CONTRARIO
-      if (existeEnLaPartida && hayJugando===2){
-
-        let i=0;
+      // AVISO A TODOS DE QUE SE HA IDO
+      if (hayJugando===2) {
         // quien es el contrario?
-        if (req.user.id==partida.jugadores[0].id) i=1;
-
-        // AVISO AL CONTRARIO DE QUE SE HA IDO
-        oppositePlayer=partida.jugadores[i].id;
-        const payLoad = {
-          "method": "disjoin",
-          "partida":partida,
-          "clientAQuitar":req.user.id,
-        }
-        console.log("disjoin del "+req.user.id);
-        clients[oppositePlayer].connection.send(JSON.stringify(payLoad))
+        //let i=0;
+        //if (req.user.id===partida.jugadores[0].id) i=1;
+        //const oppositePlayer=partida.jugadores[i].id;
+        // borre un jugador, luego sólo puede haber uno en la partida
+        const oppositePlayer=partida.jugadores[0].id;
+        // removeChild de la sala al contrario, nada más
+        const payLoad = { "method": "disjoin", "partida":partida, "clientAQuitar": oppositePlayer }
         clients[req.user.id].connection.send(JSON.stringify(payLoad))
         partida.clearEstados();
-        partida.borrarJugador(req.user.id);
-        var foundUser=conectados.find((u)=> u.id === oppositePlayer);
-        if (foundUser) {
-          const index = conectados.indexOf(foundUser.id);
-          if (index > -1) { // only splice array when item is found
-            conectados.splice(index, 1); // 2nd parameter means remove one item only
-          }
-        }
-        //  ESTABA ÉL SOLO EN LA SALA SIN UN CONTRARIO
-      } else if (existeEnLaPartida && hayJugando===1) {
-
-        //  ME QUITO EL AVATAR DE LA SALA
-        const thisPlayer=partida.jugadores[0].id;
-        const payLoad = {
-          "method": "disjoin",
-          "partida":partida,
-          "clientAQuitar":req.user.id,
-        }
-        console.log("disjoin del "+req.user.id);
-        clients[thisPlayer].connection.send(JSON.stringify(payLoad))
-        partida.clearEstados();
-        partida.borrarJugador(req.user.id);
       }
-      // ESTABA CONECTADO PERO NO JUGANDO
-      else if (!existeEnLaPartida) {
-        //  ME QUITO EL AVATAR DE LA SALA
-        console.log("Este jugador NO jugaba pero estaba conectado????");
-      }
-      else {
-        console.log("Este jugador ni jugaba ni estaba conectado????");
-      }
-     // partidas.delete(key);
-     // partidas.set(key,partida);
-
     }
 
+    // ESTABA CONECTADO PERO EN NINGUNA PARTIDA
+    else if (conectados.contiene(req.user.id)) {
+      console.log("borra Avatar del "+req.user.id+ " en todos los conectados");
+      conectados.getArray().forEach(idConectado => {
+        const payLoad = { "method": "borraMiAvatarEnRestoConectados", "idJugador": req.user.id }
+        // B logout
+        // dile a A que borre a B
+        // dile a B que borre a B
+        clients[idConectado].connection.send(JSON.stringify(payLoad))
+        console.log("\tborra Avatar del "+req.user.id+ " en el user "+idConectado);
+      });
+      // quita a B de conectados
+      conectados.quitarElemento(req.user.id);
+      console.log("borra partidas del usuario "+req.user.id);
+      // dile a B que borre a A
+      conectados.getArray().forEach(idConectado => {
+        existeEnLaPartida=false;
+        for (const  [key, value] of partidas) {
+          partida = partidas.get(key); // g vale "1"....es el idSala
+          existeEnLaPartida=partida.contieneJugador(idConectado);
+
+          if (existeEnLaPartida) {
+            partida.jugadores.forEach(j => {
+              console.log("\tsaca de la partida "+partida.id+" al user "+j.id+" en la ventana del user "+req.user.id);
+              const payLoad = {"method": "disjoin", "partida": partida, "idJugador": j.id}
+              clients[req.user.id].connection.send(JSON.stringify(payLoad))
+            });
+            break;
+          }
+        }
+      });
+    } else {
+      console.log("Algo raro pasa. User logout no está en partida ni en conectdos.");
+    }
+    noConectados.set(req.user.id, req.user );
     delete req.session.authStatus;
     delete req.user;
     res.render("login", {});
+
   } catch (error) {
-      res.end("LogoutUser. Internal server error");
+      res.end("LogoutUser. Internal server error.\n"+error_message);
   }
 }
 

@@ -29,8 +29,12 @@ class Partida {
     return points;
   }
   // en esta partida
-  existeJugador(idJugador) {
-    return (this.jugadores.indexOf(idJugador) === -1)
+  /*existeJugador(idJugador) {
+    return (this.jugadores.indexOf(idJugador) !== -1)
+  }*/
+  contieneJugador(id) {
+    var found = (this.jugadores.find((u) => u.id === id) != null);
+    return found;
   }
   // en esta partida
   borrarJugador(idJugador){

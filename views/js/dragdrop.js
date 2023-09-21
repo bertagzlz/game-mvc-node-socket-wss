@@ -1,7 +1,6 @@
 function dragStart(ev) {
     ev.dataTransfer.effectAllowed='move'; // copy, move or link
     ev.dataTransfer.setData('text/html', ev.target.getAttribute('id'));
-    //ev.dataTransfer.style.border = "3px dotted #ff6699";
     return true;
 }
 function dragEnter(ev) {
@@ -20,16 +19,13 @@ function dragDrop(ev) {
 
     //   S Ó L O   P U E D E   H A B E R   D O S   E N   L A   S A L A
     if (ev.target.childElementCount < 2) {
-        // borramos el contenedor del objeto <div clas="col"...para dejar espacio
-        //document.getElementById(src).parentElement.remove();
         // O R I G E N   E N   E L   D E S T I N O   ID="Sala 1"...
         ev.target.appendChild(origen);
 
         join(Number(document.getElementById(src).id), Number(ev.target.getAttribute('id').substr(5, 1)))
         ev.stopPropagation();
 
-        // NO USO LS DE MOMENTO
-        //addItem(origen.id, ev.target.getAttribute('id'));
+        // NO USO LS DE MOMENTO   //addItem(origen.id, ev.target.getAttribute('id'));
         ev.target.style.opacity = "1";
         //ev.target.style.width="80px";
         ev.target.style.border = "2px dotted #ffaa99";
@@ -38,16 +34,82 @@ function dragDrop(ev) {
     }
     return false;
 }
+
+// añade un id de html a la Sala 0, Sala 1...
+function mostrarEnSala(idPlayer, idSala) {
+    if (document.getElementById(idPlayer) !=null) {
+        let node = document.getElementById(idPlayer);
+        // necesito colocar esto: <img id="1" src="./images/avatar1.jpg" ...>
+        // a la sala j
+        document.getElementById("Sala "+idSala).appendChild(node);
+    }
+}
+function quitarAvatarDeSala(idPlayer, idSala) {
+    if (document.getElementById(idPlayer) !=null) {
+        let node = document.getElementById(idPlayer);
+        document.getElementById("Sala "+idSala).removeChild(node);
+    }
+}
+
+//   U N   J U G A D O R   W A S   J O I N E D,   E N T R A   E N   P A R T I D A
+function updateMiAvatarAlResto(idRecentJoined, idSala){
+    let img =document.createElement('img');
+    let user=users.find ( u => (u.id === Number(idRecentJoined)));
+    console.log("En esta página: updateMiAvatarAlResto (userId: " + idRecentJoined+", "+idSala+")");
+    img.id=idRecentJoined;
+    img.src=user.imagen;
+    img.tagName=user.name;
+    img.alt="avatar"+idRecentJoined;
+    img.draggable=true;
+    img.style.width="80px";
+    // colocando <img id="4" src="./images/avatar4.jpg" name="avatar" alt="avatar" draggable="true" width="80px">
+    document.getElementById("Sala "+idSala).appendChild(img);
+}
+
+function updateAvatarEnConectados(idNuevo, draggable){
+    let img =document.createElement('img');
+    // idContrario viene como "1" no lo entiendo
+    let user=users.find ( u => (u.id === Number(idNuevo)));
+    console.log("En esta página: crearAvatarMioEnConectados (userId: " + idNuevo+")");
+    img.id=idNuevo;
+    img.src=user.imagen;
+    img.tagName=user.name;
+    img.alt="avatar"+idNuevo;
+    img.draggable=draggable;
+    img.style.width="80px";
+    // colocando <img id="4" src="./images/avatar4.jpg" name="avatar" alt="avatar" draggable="true" width="80px">
+    document.getElementById("conectados").appendChild(img);
+    document.getElementById(idNuevo).setAttribute('draggable', draggable);
+}
+function quitarAvatarDeConectados(idExistente){
+    console.log("En esta página: quitarAvatarEnConectados (userId: " + idExistente+")");
+    let img=document.getElementById(idExistente);
+    // borrando <img id="4" src="./images/avatar4.jpg" name="avatar" alt="avatar" draggable="true" width="80px">
+    document.getElementById("conectados").removeChild(img);
+}
+
+function join(id, sala) {
+    // MSJ ->   N O D E:   J O I N   U S U A R I O   C A R G A   T A B L E R O + B O T O N E S
+    const payLoad = {
+        "method": "join",
+        "idJugador": id,
+        "idSala": sala,
+    }
+    ws.send(JSON.stringify(payLoad));
+}
+
 // borra del localStorage el item cuyo id es field1
 function deleteItem(field1) { //},field2) {
-    var items = JSON.parse(localStorage.getItem("items"));
-    for (var i =0; i< items.length; i++) {
-        var item = items[i];
-        if (item.id === String(field1)) { //&& (item.sala===field2)) {
-            items.splice(i, 1);
+    if (localStorage.getItem("items") !== null) {
+        var items = JSON.parse(localStorage.getItem("items"));
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            if (item.id === String(field1)) { //&& (item.sala===field2)) {
+                items.splice(i, 1);
+            }
         }
+        localStorage.setItem("items", JSON.stringify(items));
     }
-    localStorage.setItem("items", JSON.stringify(items));
 }
 
 //   A Ñ A D E   A L   L S   O B J E T O   id:sala
@@ -90,66 +152,6 @@ if(localStorage.getItem("items") !== null) {
         document.getElementById("estado").innerHTML="";
     });
 }
-
-function mostrarEnSala(idPlayer, idSala) {
-    if (document.getElementById(idPlayer) !=null) {
-        let node = document.getElementById(idPlayer);
-        // necesito colocar esto: <img id="1" src="./images/avatar1.jpg" ...>
-        // a la sala j
-        document.getElementById("Sala "+idSala).appendChild(node);
-    }
-}
-
-function quitarAvatar(idPlayer, idSala) {
-    if (document.getElementById(idPlayer) !=null) {
-        let node = document.getElementById(idPlayer);
-        // necesito colocar esto: <img id="1" src="./images/avatar1.jpg" ...>
-        // a la sala j
-        document.getElementById("Sala "+idSala).removeChild(node);
-    }
-}
-
-function crearAvatardelContrarioEnSala(idContrario, idSala){
-    let img =document.createElement('img');
-    // idContrario viene como "1" no lo entiendo
-    let user=users.find ( u => (u.id === Number(idContrario)));
-    console.log("En esta página: crearAvatardelContrarioEnSala (userId: " + idContrario+", "+idSala+")");
-    img.id=idContrario;
-    img.src=user.imagen;
-    img.tagName=user.name;
-    img.alt="avatar"+idContrario;
-    img.draggable=true;
-    img.style.width="80px";
-    // colocando <img id="4" src="./images/avatar4.jpg" name="avatar" alt="avatar" draggable="true" width="80px">
-    document.getElementById("Sala "+idSala).appendChild(img);
-}
-function updateAvatarEnConectados(idNuevo){
-    let img =document.createElement('img');
-    // idContrario viene como "1" no lo entiendo
-    let user=users.find ( u => (u.id === Number(idNuevo)));
-    console.log("En esta página: crearAvatarMioEnConectados (userId: " + idNuevo+")");
-    img.id=idNuevo;
-    img.src=user.imagen;
-    img.tagName=user.name;
-    img.alt="avatar"+idNuevo;
-    img.draggable=true;
-    img.style.width="80px";
-    // colocando <img id="4" src="./images/avatar4.jpg" name="avatar" alt="avatar" draggable="true" width="80px">
-    document.getElementById("conectados").appendChild(img);
-}
-
-function join(id, sala) {
-    //document.getElementById("userConnected").hidden=true;
-    //document.getElementById("usuarios").hidden=true;
-    // MSJ ->   N O D E:   J O I N   U S U A R I O   C A R G A   T A B L E R O + B O T O N E S
-    const payLoad = {
-        "method": "join",
-        "idJugador": id,
-        "idSala": sala,
-    }
-    ws.send(JSON.stringify(payLoad));
-}
-
 // muestro en la sala el idPlayer recibido que se encuentra asociado en el LS
 function mostrarItemDeLS(idPlayer,jugadoresPorSala) {
 
