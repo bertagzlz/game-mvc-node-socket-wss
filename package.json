@@ -10,7 +10,7 @@
     "develop": "node index.js",
     "build": "tsc -p . -w",
     "start": "nodemon index.js",
-    "dev": "nodemon index.ts"
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
