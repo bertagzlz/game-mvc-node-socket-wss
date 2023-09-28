@@ -66,8 +66,9 @@ const server = https.createServer({
   cert: fs.readFileSync('./cert.pem'),
   key: fs.readFileSync('./key.pem'),
 },app);   // https
-const wss = new WebSocket.Server({ server });
 
+//const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ server, cors: {origin:'*'} });
 wss.on('connection', (ws) => {
   console.log("connection started");
   //   O P E N
